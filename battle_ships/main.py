@@ -1,5 +1,5 @@
 from .game import BattleshipsGame
-from .utils import coord_to_label, parse_coordinate
+from .utils import coord_to_label, parse_coordinate, print_tracking_board
 
 
 TITLE = "battle-ships"
@@ -45,9 +45,9 @@ def main() -> None:
 
     while True:
         print_status(size, shots_taken=len(game.computer_board.shots_taken))
-
         # Player turn (validate until a non-repeat valid shot happens)
         while True:
+            print_tracking_board(size, game.computer_board.shot_map)
             guess = input("Fire at: ").strip()
             coord = parse_coordinate(guess, size)
 
@@ -72,7 +72,10 @@ def main() -> None:
 
         # Computer turn
         c_row, c_col, c_result = game.computer_fire()
-        print(f"Computer fires at {coord_to_label(c_row, c_col)}: {c_result.message}")
+        print(
+            f"Computer fires at {coord_to_label(c_row, c_col)}: "
+            f"{c_result.message}"
+        )
 
         if game.computer_won():
             print()

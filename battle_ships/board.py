@@ -39,6 +39,18 @@ class Board:
 
         return True
 
+    def print_tracking_board(
+        self, size: int, shot_map: list[list[str]]
+    ) -> None:
+        letters = " ".join(chr(ord("A") + i) for i in range(size))
+        print("Enemy Waters (your shots)")
+        print(f"   {letters}")
+        for r in range(size):
+            row_num = f"{r + 1:2}"
+            row_cells = " ".join(shot_map[r])
+            print(f"{row_num} {row_cells}")
+        print()
+
     def place_ship(self, coords: list[tuple[int, int]]) -> bool:
         """
         Place a ship if valid. Returns True if placed, False otherwise.
@@ -49,6 +61,31 @@ class Board:
         self.ships.append(set(coords))
         return True
 
+    def fleet_view(self) -> list[list[str]]:
+        """
+        Returns a grid showing the board from the owner's perspective:
+        ~ = water (untouched)
+        O = miss (shot taken, no ship)
+        X = hit (shot taken, ship present)
+        S = ship (not yet hit)
+        """
+        grid = [["~" for _ in range(self.size)] for _ in range(self.size)]
+
+        # Mark ships
+        for ship in self.ships:
+            for r, c in ship:
+                grid[r][c] = "S"
+
+        # Mark shots
+        occupied_all = self._occupied()
+        for r, c in self.shots_taken:
+            if (r, c) in occupied_all:
+                grid[r][c] = "X"
+            else:
+                grid[r][c] = "O"
+
+        return grid
+
     def receive_shot(self, row: int, col: int) -> ShotOutcome:
         """
         Apply a shot to this board.
@@ -56,7 +93,9 @@ class Board:
         shot = (row, col)
 
         if shot in self.shots_taken:
-            return ShotOutcome("repeat", "You already fired at that coordinate.")
+            return ShotOutcome(
+                "repeat", "You already fired at that coordinate."
+            )
 
         self.shots_taken.add(shot)
 
