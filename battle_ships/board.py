@@ -9,47 +9,40 @@ class ShotOutcome:
 
 class Board:
     """
-    Stores ship positions and tracks shots taken.
+    Stores ship positions and tracks shots.
 
-    ships: list of sets; each set contains remaining coordinates for a ship.
-    shots_taken: set of all coordinates already fired at.
+    Data:
+    - ships: remaining coordinates per ship (hit squares removed)
+    - ship_cells: all original ship coordinates (for fleet display)
+    - shots_taken: all coordinates fired at
+    - shot_map: shooter view (~ unknown, O miss, X hit)
     """
 
     def __init__(self, size: int) -> None:
         self.size = size
         self.ships: list[set[tuple[int, int]]] = []
+        self.ship_cells: set[tuple[int, int]] = set()
         self.shots_taken: set[tuple[int, int]] = set()
-
-    def _occupied(self) -> set[tuple[int, int]]:
-        if not self.ships:
-            return set()
-        return set().union(*self.ships)
+        self.shot_map: list[list[str]] = [
+            ["~" for _ in range(size)] for _ in range(size)
+        ]
 
     def can_place_ship(self, coords: list[tuple[int, int]]) -> bool:
+        """
+        Return True if ship coordinates are in-bounds and non-overlapping.
+        """
         if not coords:
             return False
 
-        occupied = self._occupied()
-
-        for r, c in coords:
-            if r < 0 or r >= self.size or c < 0 or c >= self.size:
+        for row, col in coords:
+            if row < 0 or row >= self.size:
                 return False
-            if (r, c) in occupied:
+            if col < 0 or col >= self.size:
+                return False
+            if (row, col) in self.ship_cells:
                 return False
 
         return True
-
-    def print_tracking_board(
-        self, size: int, shot_map: list[list[str]]
-    ) -> None:
-        letters = " ".join(chr(ord("A") + i) for i in range(size))
-        print("Enemy Waters (your shots)")
-        print(f"   {letters}")
-        for r in range(size):
-            row_num = f"{r + 1:2}"
-            row_cells = " ".join(shot_map[r])
-            print(f"{row_num} {row_cells}")
-        print()
 
     def place_ship(self, coords: list[tuple[int, int]]) -> bool:
         """
@@ -59,55 +52,53 @@ class Board:
             return False
 
         self.ships.append(set(coords))
+        self.ship_cells.update(coords)
         return True
-
-    def fleet_view(self) -> list[list[str]]:
-        """
-        Returns a grid showing the board from the owner's perspective:
-        ~ = water (untouched)
-        O = miss (shot taken, no ship)
-        X = hit (shot taken, ship present)
-        S = ship (not yet hit)
-        """
-        grid = [["~" for _ in range(self.size)] for _ in range(self.size)]
-
-        # Mark ships
-        for ship in self.ships:
-            for r, c in ship:
-                grid[r][c] = "S"
-
-        # Mark shots
-        occupied_all = self._occupied()
-        for r, c in self.shots_taken:
-            if (r, c) in occupied_all:
-                grid[r][c] = "X"
-            else:
-                grid[r][c] = "O"
-
-        return grid
 
     def receive_shot(self, row: int, col: int) -> ShotOutcome:
         """
-        Apply a shot to this board.
+        Apply a shot to this board and return the result.
         """
         shot = (row, col)
 
         if shot in self.shots_taken:
-            return ShotOutcome(
-                "repeat", "You already fired at that coordinate."
-            )
+            msg = "You already fired at that coordinate."
+            return ShotOutcome("repeat", msg)
 
         self.shots_taken.add(shot)
 
         for ship in list(self.ships):
             if shot in ship:
                 ship.remove(shot)
+                self.shot_map[row][col] = "X"
+
                 if not ship:
                     self.ships.remove(ship)
                     return ShotOutcome("sunk", "Sunk!")
+
                 return ShotOutcome("hit", "Hit!")
 
+        self.shot_map[row][col] = "O"
         return ShotOutcome("miss", "Miss!")
 
     def all_ships_sunk(self) -> bool:
         return len(self.ships) == 0
+
+    def fleet_view(self) -> list[list[str]]:
+        """
+        Owner view of this board:
+        ~ water, S ship, O miss, X hit
+        """
+        grid = [["~" for _ in range(self.size)] for _ in range(self.size)]
+
+        for row, col in self.ship_cells:
+            grid[row][col] = "S"
+
+        for row, col in self.shots_taken:
+            if (row, col) in self.ship_cells:
+                grid[row][col] = "X"
+            else:
+                grid[row][col] = "O"
+
+        return grid
+    
