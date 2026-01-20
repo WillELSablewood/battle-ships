@@ -21,3 +21,4 @@ def parse_coordinate(coord: str, size: int):
         return None
 
     return row, col
+

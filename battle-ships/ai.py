@@ -11,3 +11,4 @@ class ComputerAI:
 
     def take_shot(self):
         return self.available_shots.pop()
+

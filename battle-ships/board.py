@@ -45,3 +45,4 @@ class Board:
                 else:
                     line.append(cell)
             print(f"{i + 1:2} " + " ".join(line))
+            
